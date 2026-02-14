@@ -1,6 +1,7 @@
 global	print_str
 global	print_int
 global	print_uint
+global  print_char
 
 extern	itoa
 extern	uitoa
@@ -69,3 +70,10 @@ print_uint:
 	call	print_str
 
 	ret
+
+
+; --- PRINT_CHAR (char c) ---
+
+print_char:
+
+        ret

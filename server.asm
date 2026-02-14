@@ -8,6 +8,7 @@ extern  set_reuseaddr
 extern  bind
 extern  listen
 extern  accept
+extern  alloc
 
 section .data
 
@@ -20,6 +21,10 @@ err_listen:     db      "Failed to call listen!", 10, 0
 ; success messages
 success_socket: db      "Socket created!!!!", 10, 0
 
+; msg
+msg_wait_client:
+                db      "Waiting for client...", 10, 0
+
 sockaddr:
 	dw	        2		                ; AF_INET
 	dw	        0x901F		                ; port (8080)
@@ -27,6 +32,7 @@ sockaddr:
 
 section .bss
 sock_fd:                resq    1
+remote_fd:              resq    1
 client_sockaddr:        resb    16
 
 section .text
@@ -88,6 +94,15 @@ setup_socket:
         jmp     EXIT
 
 
+handle_client:
+        mov     rdi, qword [rsp - 8]
+        mov     rsi, 1
+        call    print_int
+
+        mov     rdi, 0
+        mov     rax, 60
+        syscall
+
 _start: call    setup_socket
         cmp     rax, 0
         jl      EXIT
@@ -96,12 +111,31 @@ _start: call    setup_socket
         mov     rsi, 0
         call    print_str
 
+.loop:  mov     rdi, msg_wait_client
+        mov     rsi, 0
+        call    print_str
+
         mov     rdi, [sock_fd]
         mov     rsi, 0
         call    accept
+        push    rax
 
-        mov     rdi, rax
-        call    print_int
+        mov     rdi, 256
+        call    alloc
+        add     rax, 256
+
+        pop     rbx
+        mov     qword [rax - 8], rbx
+
+        mov     rdi, 0x10d00                    ; flags (CLONE_VM | CLONE_FILES | CLONE_THREAD | CLONE_SIGHAND)
+        mov     rsi, rax                        ; stack ptr
+        mov     rax, 56                         ; clone opcode
+        syscall
+
+        cmp     rax, 0
+        je      handle_client
+
+        jmp     .loop
 
 EXIT:   mov     rdi, 0
         mov     rax, 60
