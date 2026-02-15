@@ -88,10 +88,11 @@ print_char:
         ret
 
 
-; --- PRINT_SOCKADDR (sockaddr *s) ---
+; --- PRINT_SOCKADDR (sockaddr *s, bool print_port) ---
 
 print_sockaddr:
         mov     r12, rdi                ; store ptr in a callee-saved register
+        mov     r13, rsi                ; store print_port
         mov     rbx, 4                  ; counter
 
 .loop:  movzx   rdi, byte [r12 + rbx]   ; load and print octet
@@ -108,6 +109,9 @@ print_sockaddr:
         jmp     .loop
 
 .end_loop:
+        cmp     r13, 0
+        je      .end
+
         ; PRINTING PORT
         mov     rdi, ':'
         call    print_char
@@ -116,7 +120,9 @@ print_sockaddr:
         xchg    al, ah                  ; endian-ness mess
         mov     rdi, rax
 
-        mov     rsi, 1
+        mov     rsi, 0
         call    print_uint
 
+.end:   mov     rdi, 10
+        call    print_char
         ret
