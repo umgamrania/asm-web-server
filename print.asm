@@ -2,6 +2,7 @@ global	print_str
 global	print_int
 global	print_uint
 global  print_char
+global  print_sockaddr
 
 extern	itoa
 extern	uitoa
@@ -75,5 +76,47 @@ print_uint:
 ; --- PRINT_CHAR (char c) ---
 
 print_char:
+        dec     rsp                     ; storing character in stack cuz write needs buffer
+        mov     byte [rsp], dil
+
+        mov     rdi, 1                  ; stdout
+        mov     rsi, rsp                ; buf
+        mov     rdx, 1                  ; count
+        mov     rax, 1
+        syscall
+        inc     rsp
+        ret
+
+
+; --- PRINT_SOCKADDR (sockaddr *s) ---
+
+print_sockaddr:
+        mov     r12, rdi                ; store ptr in a callee-saved register
+        mov     rbx, 4                  ; counter
+
+.loop:  movzx   rdi, byte [r12 + rbx]   ; load and print octet
+        mov     rsi, 0
+        call    print_uint
+
+        inc     rbx                     ; increment counter and break if done
+        cmp     rbx, 8
+        jge     .end_loop
+
+        mov     rdi, '.'                ; print octet seperator
+        call    print_char
+
+        jmp     .loop
+
+.end_loop:
+        ; PRINTING PORT
+        mov     rdi, ':'
+        call    print_char
+
+        movzx   rax, word [r12 + 2]     ; load port from struct
+        xchg    al, ah                  ; endian-ness mess
+        mov     rdi, rax
+
+        mov     rsi, 1
+        call    print_uint
 
         ret
