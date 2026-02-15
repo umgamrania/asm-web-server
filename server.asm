@@ -1,7 +1,10 @@
 global  _start
 
 extern  print_int
+extern  print_uint
 extern  print_str
+extern  print_char
+extern  print_sockaddr
 
 extern  create_socket
 extern  set_reuseaddr
@@ -95,9 +98,7 @@ setup_socket:
 
 
 handle_client:
-        mov     rdi, qword [rsp - 8]
-        mov     rsi, 1
-        call    print_int
+        jmp     handle_client
 
         mov     rdi, 0
         mov     rax, 60
@@ -107,6 +108,7 @@ _start: call    setup_socket
         cmp     rax, 0
         jl      EXIT
 
+        ; PRINT SUCCESS
         mov     rdi, success_socket
         mov     rsi, 0
         call    print_str
@@ -115,11 +117,18 @@ _start: call    setup_socket
         mov     rsi, 0
         call    print_str
 
+        sub     rsp, 16
+
+        ; ACCEPT
         mov     rdi, [sock_fd]
-        mov     rsi, 0
+        mov     rsi, rsp
         call    accept
         push    rax
 
+        lea     rdi, [rsp + 8]
+        call    print_sockaddr
+
+        ; ALLOCATE STACK FOR THREAD
         mov     rdi, 256
         call    alloc
         add     rax, 256
@@ -127,6 +136,7 @@ _start: call    setup_socket
         pop     rbx
         mov     qword [rax - 8], rbx
 
+        ; CREATE THREAD
         mov     rdi, 0x10d00                    ; flags (CLONE_VM | CLONE_FILES | CLONE_THREAD | CLONE_SIGHAND)
         mov     rsi, rax                        ; stack ptr
         mov     rax, 56                         ; clone opcode
