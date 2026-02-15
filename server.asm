@@ -22,9 +22,10 @@ err_bind:       db      "Failed to bind!", 10, 0
 err_listen:     db      "Failed to call listen!", 10, 0
 
 ; success messages
-success_socket: db      "Socket created!!!!", 10, 0
+success_socket: db      "Socket created!", 10, 0
 
 ; msg
+msg_init:       db      "Setting up socket...", 10, 0
 msg_wait_client:
                 db      "Waiting for client...", 10, 0
 
@@ -96,56 +97,65 @@ setup_socket:
         call    print_str
         jmp     EXIT
 
-
 handle_client:
-        jmp     handle_client
+        sub     rsp, 24
+        mov     rdi, rsp
+        call    print_sockaddr
 
         mov     rdi, 0
         mov     rax, 60
         syscall
 
-_start: call    setup_socket
+_start: mov     rdi, msg_init                           ; Printing init msg
+        mov     rsi, 0
+        call    print_str
+
+        call    setup_socket                            ; Setting up socket
         cmp     rax, 0
         jl      EXIT
 
-        ; PRINT SUCCESS
-        mov     rdi, success_socket
+
+.loop:                                                  ; Socket accept loop
+        ; Print wait msg
+        mov     rdi, msg_wait_client
         mov     rsi, 0
         call    print_str
-
-.loop:  mov     rdi, msg_wait_client
-        mov     rsi, 0
-        call    print_str
-
-        sub     rsp, 16
 
         ; ACCEPT
-        mov     rdi, [sock_fd]
-        mov     rsi, rsp
+        mov     rdi, [sock_fd]                          ; sock_fd is set by setup_socket
+        mov     rsi, client_sockaddr
         call    accept
-        push    rax
+        push    rax                                     ; Store socket_fd in stack
 
-        lea     rdi, [rsp + 8]
-        call    print_sockaddr
 
-        ; ALLOCATE STACK FOR THREAD
-        mov     rdi, 256
+        ; Allocate Stack for thread
+        mov     rdi, 1024
         call    alloc
-        add     rax, 256
+        add     rax, 1024                               ; rax now points to bottom of new stack
 
-        pop     rbx
-        mov     qword [rax - 8], rbx
+        ; Push socket_fd on new stack
+        sub     rax, 8                                  ; allocate room for socket_fd
+        pop     rbx                                     ; Temporarily store socket_fd in rbx
+        mov     qword [rax], rbx                        ; store socket_fd on new stack
 
-        ; CREATE THREAD
-        mov     rdi, 0x10d00                    ; flags (CLONE_VM | CLONE_FILES | CLONE_THREAD | CLONE_SIGHAND)
-        mov     rsi, rax                        ; stack ptr
-        mov     rax, 56                         ; clone opcode
+        ; Push client sockaddr on new stack
+        sub     rax, 16
+        movdqu  xmm0, [client_sockaddr]
+        movdqu  [rax], xmm0
+
+
+        ; Create thread
+        add     rax, 24                                 ; Restore rax to base of new stack
+
+        mov     rdi, 0x10d00                            ; flags (CLONE_VM | CLONE_FILES | CLONE_THREAD | CLONE_SIGHAND)
+        mov     rsi, rax                                ; new stack ptr
+        mov     rax, 56                                 ; CLONE opcode
         syscall
 
-        cmp     rax, 0
-        je      handle_client
+        cmp     rax, 0                                  ; Compare return value of clone
+        je      handle_client                           ; Child process receives 0
 
-        jmp     .loop
+        jmp     .loop                                   ; Parent process continues loop
 
 EXIT:   mov     rdi, 0
         mov     rax, 60
