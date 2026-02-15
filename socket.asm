@@ -63,8 +63,12 @@ listen:                                         ; rdi and rsi are already set by
 ; --- ACCEPT(int sock_fd, sockaddr *remote_addr) ---
 
 accept:                                         ; rdi and rsi are already set by caller
-        mov     rdx, 0                          ; remote_addr len not required
+        sub     rsp, 16                         ; make room for socklen_t
+        mov     dword [rsp], 16
+        mov     rdx, rsp                        ; remote_addr len
         mov	rax, 43		                ; accept opcode
 	syscall
+
+	add     rsp, 16
 
 	ret
