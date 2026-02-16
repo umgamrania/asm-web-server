@@ -4,6 +4,8 @@ extern  print_char
 extern  print_int
 extern  alloc
 extern  strstr
+extern  resp_400
+extern  resp_200
 
 extern  parse_http
 
@@ -25,7 +27,6 @@ handle_client:
         call    alloc
         push    rax
 
-.recv_loop:
         ; Read from socket
         mov     rdi, [rsp + 8 * 3]                      ; fd
         mov     rsi, [rsp]                              ; buf
@@ -46,9 +47,12 @@ handle_client:
         mov     rdx, rsp
         call    parse_http
 
+        ; Bad request if parsing fails
         cmp     rax, 0
         jl      .bad
 
+
+        ; Print client address
         mov     rdi, '['
         call    print_char
 
@@ -63,6 +67,8 @@ handle_client:
         mov     rdi, ' '
         call    print_char
 
+
+
         ; Print method
         mov     rdi, [rsp + 8]
         mov     rsi, 0
@@ -76,9 +82,15 @@ handle_client:
         mov     rsi, 1
         call    print_str
 
-        jmp     .recv_loop
+        mov     rdi, [rsp + 8 * 5]
+        call    resp_200
 
-.bad:   mov     rdi, s1
+        jmp     .exit
+
+.bad:   mov     rdi, [rsp + 8 * 5]                      ; fd
+        call    resp_400
+
+        mov     rdi, s1
         mov     rsi, 0
         call    print_str
 
