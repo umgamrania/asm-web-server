@@ -123,6 +123,4 @@ print_sockaddr:
         mov     rsi, 0
         call    print_uint
 
-.end:   mov     rdi, 10
-        call    print_char
-        ret
+.end:   ret
