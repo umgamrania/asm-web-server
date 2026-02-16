@@ -6,6 +6,8 @@ extern  print_str
 extern  print_char
 extern  print_sockaddr
 
+extern  handle_client
+
 extern  create_socket
 extern  set_reuseaddr
 extern  bind
@@ -32,7 +34,7 @@ msg_wait_client:
 sockaddr:
 	dw	        2		                ; AF_INET
 	dw	        0x901F		                ; port (8080)
-	db	        127, 0, 0, 1	                ; 127.0.0.1
+	db	        0, 0, 0, 0	                ; 127.0.0.1
 
 section .bss
 sock_fd:                resq    1
@@ -97,14 +99,6 @@ setup_socket:
         call    print_str
         jmp     EXIT
 
-handle_client:
-        sub     rsp, 24
-        mov     rdi, rsp
-        call    print_sockaddr
-
-        mov     rdi, 0
-        mov     rax, 60
-        syscall
 
 _start: mov     rdi, msg_init                           ; Printing init msg
         mov     rsi, 0

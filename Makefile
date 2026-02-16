@@ -8,7 +8,7 @@ BINARY_NAME=server
 SHARED_FILES=functions.asm print.asm
 SHARED_OBJS=$(SHARED_FILES:.asm=.o)
 
-PROJECT_FILES=server.asm socket.asm
+PROJECT_FILES=server.asm socket.asm handle_client.asm http.asm
 PROJECT_OBJS=$(PROJECT_FILES:.asm=.o)
 
 all: $(PROJECT_OBJS) $(SHARED_OBJS)
