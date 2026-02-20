@@ -8,6 +8,10 @@ global	itoa
 global	uitoa
 global  alloc
 global  free
+global  get_filesize
+
+section .bss
+statbuf resb    144
 
 section	.text
 
@@ -248,4 +252,15 @@ alloc:
 free:   mov     rax, 0x0b                       ; munmap opcode
         syscall
 
+        ret
+
+
+; --- GET_FILESIZE(char *path) ---
+
+get_filesize:
+        mov     rsi, statbuf            ; pointer to buffer
+        mov     rax, 4                  ; stat opcode
+        syscall
+
+        mov     rax, [statbuf + 48]
         ret
