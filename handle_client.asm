@@ -116,6 +116,14 @@ handle_client:
         mov     rbp, rsp
         sub     rsp, 24
 
+        ; print client addr
+        mov     rdi, rsp
+        mov     rsi, 0
+        call    print_sockaddr
+
+        mov     rdi, ' '
+        call    print_char
+
         mov     rdi, [rsp + 8 * 2]              ; socket_fd
         call    recv_req
 
@@ -128,6 +136,20 @@ handle_client:
 
         cmp     rax, 0                          ; check if bad request
         jl      .bad
+
+        ; print method
+        mov     rdi, [rsp]
+        mov     rsi, 0
+        call    print_str
+
+        mov     rdi, ' '
+        call    print_char
+
+        ; print path
+        lea     rdi, [rsp + 8]
+        mov     rdi, [rdi]
+        mov     rsi, 1
+        call    print_str
 
         mov     rdi, [rsp]                      ; check method
         mov     rsi, s3
